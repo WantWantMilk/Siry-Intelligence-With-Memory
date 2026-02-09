@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Siry - 小锐聊天室 (带记忆版)</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤡</text></svg>">
+    <style>
+        :root {
+            --primary-color: rgba(120, 119, 198, 0.85);
+            --glass-bg: rgba(255, 255, 255, 0.2);
+            --glass-border: rgba(255, 255, 255, 0.3);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .main-container {
+            width: 100%;
+            max-width: 900px;
+            min-height: 85vh;
+            background: var(--glass-bg);
+            border-radius: 24px;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            background: linear-gradient(90deg, var(--primary-color), rgba(154, 130, 219, 0.85));
+            color: white;
+            padding: 25px 32px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2rem; margin-bottom: 8px; }
+        .content-area {
+            flex: 1;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            min-height: 300px;
+        }
+        .message {
+            margin-bottom: 20px;
+            max-width: 85%;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .user-message {
+            background: linear-gradient(135deg, #6a89cc, #4a69bd);
+            color: white;
+            border-radius: 22px 22px 6px 22px;
+            float: right;
+            margin-left: auto;
+        }
+        .bot-message {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            border-radius: 22px 22px 22px 6px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            float: left;
+        }
+        .message-content { padding: 16px 22px; }
+        .message-sender { font-size: 0.85rem; opacity: 0.7; margin-bottom: 5px; }
+        .input-area {
+            display: flex;
+            gap: 15px;
+            padding: 10px 5px;
+        }
+        #userInput {
+            flex: 1;
+            padding: 18px 25px;
+            border: 2px solid #ddd;
+            border-radius: 50px;
+            font-size: 1.05rem;
+            background: rgba(255, 255, 255, 0.9);
+        }
+        #sendBtn {
+            background: linear-gradient(90deg, var(--primary-color), rgba(154, 130, 219, 0.85));
+            color: white;
+            border: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+        .footer {
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.4);
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            margin: 0 10px;
+        }
+        .auth-section {
+            text-align: center;
+            max-width: 500px;
+            margin: 40px auto;
+            display: none; /* 默认隐藏，通过JS控制 */
+        }
+        @media (max-width: 768px) {
+            .main-container { min-height: 90vh; border-radius: 20px; }
+            .content-area { padding: 20px; }
+            .message { max-width: 95%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="header">
+            <h1>🤡 Siry · 小锐聊天室</h1>
+            <p>完整记忆版 - 我能记住我们聊过的每一句话</p>
+        </div>
+        
+        <div class="content-area">
+            <!-- 验证区域（第一次访问时显示） -->
+            <div id="authSection" class="auth-section">
+                <h2>🔐 欢迎回来</h2>
+                <p>Siry正在加载你的对话记忆...</p>
+                <button id="enterChatBtn" style="margin-top:20px; padding:15px 30px; background:var(--primary-color); color:white; border:none; border-radius:50px; font-size:1.1rem;">
+                    进入聊天室
+                </button>
+            </div>
+            
+            <!-- 聊天区域（验证后显示） -->
+            <div id="chatSection">
+                <div class="chat-messages" id="chatMessages">
+                    <!-- 对话历史会通过JS动态加载到这里 -->
+                </div>
+                <div class="input-area">
+                    <input type="text" id="userInput" placeholder="和Siry聊点什么..." autocomplete="off">
+                    <button id="sendBtn" onclick="window.SiryCore.sendMessage()">➤</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>💾 Siry会记住最近20轮对话 | 📜 基于 AGPL-3.0 开源</p>
+            <div>
+                <a href="ie.html">兼容模式</a> | 
+                <a href="#" onclick="window.SiryCore.clearChatHistory()">清空记忆</a> | 
+                <a href="#" onclick="alert('记忆系统已启用！Siry会记住我们最近的对话。')">帮助</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 核心JS文件 -->
+    <script src="siry-core.js"></script>
+    
+    <!-- 页面控制逻辑 -->
+    <script>
+        // 页面加载逻辑
+        document.addEventListener('DOMContentLoaded', function() {
+            const authSection = document.getElementById('authSection');
+            const chatSection = document.getElementById('chatSection');
+            const enterBtn = document.getElementById('enterChatBtn');
+            
+            // 检查是否有本地记忆（简单的存在性检查）
+            const hasHistory = localStorage.getItem('siry_conversation') !== null;
+            
+            if (!hasHistory) {
+                // 首次访问，显示欢迎
+                authSection.style.display = 'block';
+                chatSection.style.display = 'none';
+                enterBtn.onclick = function() {
+                    authSection.style.display = 'none';
+                    chatSection.style.display = 'flex';
+                    // 初始化聊天显示
+                    window.SiryCore.initChatDisplay('chatMessages', 'userInput', 'sendBtn');
+                    document.getElementById('userInput').focus();
+                };
+            } else {
+                // 非首次访问，直接进入聊天
+                authSection.style.display = 'none';
+                chatSection.style.display = 'flex';
+                // 初始化聊天显示
+                window.SiryCore.initChatDisplay('chatMessages', 'userInput', 'sendBtn');
+                document.getElementById('userInput').focus();
+            }
+            
+            // 为发送按钮绑定更直观的函数名
+            window.SiryCore.sendMessage = function() {
+                const input = document.getElementById('userInput');
+                const text = input.value.trim();
+                if (text) {
+                    // 这里直接使用siry-core.js中的逻辑
+                    // 由于initChatDisplay已绑定事件，这里可以保持简洁
+                    const event = new Event('click');
+                    document.getElementById('sendBtn').dispatchEvent(event);
+                }
+            };
+        });
+        
+        // 简单的IE检测
+        if (window.document.documentMode) {
+            window.location.href = "ie.html";
+        }
+    </script>
+</body>
+</html>
