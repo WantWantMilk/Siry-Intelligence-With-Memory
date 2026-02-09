@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Siry - 兼容模式</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background: #f0f0f0; }
+        #chatBox { border: 1px solid #999; height: 400px; overflow-y: scroll; padding: 10px; background: white; margin-bottom: 10px; }
+        .userMsg { text-align: right; color: blue; margin: 5px; background: #e3f2fd; padding: 8px; border-radius: 10px; display: inline-block; max-width: 80%; float: right; clear: both; }
+        .botMsg { text-align: left; color: green; margin: 5px; background: #f1f8e9; padding: 8px; border-radius: 10px; display: inline-block; max-width: 80%; float: left; clear: both; }
+        input { width: 70%; padding: 12px; font-size: 16px; border: 2px solid #ccc; border-radius: 5px; }
+        button { padding: 12px 24px; font-size: 16px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .info { color: #666; margin: 10px 0; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h2>🤖 Siry 聊天室 (兼容模式)</h2>
+    <p class="info"><strong>注意：</strong>此页面为旧版浏览器优化，<strong>同样具备完整记忆功能</strong>。</p>
+    
+    <div id="chatBox">
+        <div class="botMsg"><strong>Siry:</strong> 你好！我已进入兼容模式，能记住我们之前的对话。</div>
+    </div>
+    
+    <input type="text" id="userInput" placeholder="输入消息...">
+    <button onclick="sendMessage()">发送</button>
+    
+    <p class="info">
+        <a href="index.html">← 返回主界面</a> | 
+        记忆已启用 | 
+        <button onclick="clearMemory()" style="padding:5px 10px; font-size:0.8em;">清空记忆</button>
+    </p>
+
+    <!-- 引用相同的核心文件 -->
+    <script src="siry-core.js"></script>
+    
+    <script>
+        // 初始化显示
+        function initDisplay() {
+            const recent = window.SiryCore.memory.getRecentMessages(5);
+            const chatBox = document.getElementById('chatBox');
+            
+            recent.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = msg.role === 'user' ? 'userMsg' : 'botMsg';
+                div.innerHTML = `<strong>${msg.role === 'user' ? '你' : 'Siry'}:</strong> ${msg.content}`;
+                chatBox.appendChild(div);
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+        
+        // 发送消息
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const chatBox = document.getElementById('chatBox');
+            const msg = input.value.trim();
+            
+            if (!msg) return;
+            
+            // 显示用户消息
+            const userDiv = document.createElement('div');
+            userDiv.className = 'userMsg';
+            userDiv.innerHTML = `<strong>你:</strong> ${msg}`;
+            chatBox.appendChild(userDiv);
+            
+            // 显示思考中
+            const thinkingDiv = document.createElement('div');
+            thinkingDiv.className = 'botMsg';
+            thinkingDiv.innerHTML = `<strong>Siry:</strong> 思考中...`;
+            chatBox.appendChild(thinkingDiv);
+            
+            input.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            // 使用核心库发送消息
+            await window.SiryCore.sendToSiry(msg, (reply) => {
+                // 替换思考中消息
+                thinkingDiv.innerHTML = `<strong>Siry:</strong> ${reply}`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
+        }
+        
+        // 清空记忆
+        function clearMemory() {
+            if (confirm('确定要清空所有对话记忆吗？')) {
+                window.SiryCore.memory.clear();
+                alert('记忆已清空！页面将刷新。');
+                location.reload();
+            }
+        }
+        
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            initDisplay();
+            // 回车键发送
+            document.getElementById('userInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') sendMessage();
+            });
+        });
+    </script>
+</body>
+</html>
